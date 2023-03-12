@@ -1,0 +1,209 @@
+install.packages("ggplot2")
+
+install.packages("readxl")
+
+install.packages("randomForest")
+
+install.packages("tidyverse")
+
+install.packages("moments")
+
+library(tidyverse)
+
+library(readxl)
+
+library(ggplot2)
+
+library(randomForest)
+
+library(moments)
+
+#Extracting data from first dataset into R
+
+first_dataset <-
+
+read.csv(file = '/Users/adiup/Desktop/owid-covid-data\ .csv', header = T)
+
+#Selecting relevant columns
+
+first_dataset_subset <-
+
+subset(mydata, select = c("location","date","total_cases",
+
+"total_deaths","stringency_index"
+
+,"population","life_expectancy",
+
+"human_development_index","total_vaccinations"))
+
+#Further filtering to select relevant country
+
+first_dataset <- first_dataset_subset %>% filter( location == "United States")
+
+#Extracting data from second dataset into R
+
+second_dataset_unfiltered <-
+
+read_excel("/Users/adiup/Downloads/API_SH.XPD.CHEX.PP.CD_DS2_en_excel_v2_3473502.xls")
+
+#Further filtering to select relevant country
+
+second_dataset_filtered <-
+
+second_dataset_unfiltered %>% filter( CountryName == "United States" )
+
+keeps <- c("CountryName", "IndicatorName","2018")
+
+second_dataset <- second_dataset_filtered[keeps]
+
+Dropping rows to remove irrelevant rows and missing data
+
+first_dataset <-
+
+subset(first_dataset, total_cases != "NA" & total_deaths != "NA"
+
+& stringency_index != "NA" & population != "NA" & life_expectancy != "NA"
+
+& human_development_index != "NA" & total_vaccinations != "NA")
+
+INF6027 - Introduction to Data Science 12
+
+#Adding case fatality rate as a column using total deaths and total cases
+
+total_cases_numeric <- as.numeric(unlist(main_modified$total_cases))
+
+total_deaths_numeric <- as.numeric(unlist(main_modified$total_deaths))
+
+first_dataset$mortality_rate <- (
+
+total_deaths_numeric/total_cases_numeric
+
+)
+
+Merging the first and the second dataset
+
+second_dataset$location <- second_dataset$CountryName
+
+second_dataset <- subset(second_dataset, select=-CountryName)
+
+final_dataset <- left_join(main_modified, finalhealthdata, by=c("location"))
+
+#Checking further for missing values
+
+#(Removed missing values earlier while removing irrelevent data)
+
+is.na(new_dataframe$case_fatality_rate)
+
+#No missing values found
+
+#Checking for outliers by plotting a boxplot
+
+ggplot(final_dataset, aes(x=numdate, y=final_dataset$mortality_rate)) +
+
+geom_boxplot()
+
+Scatterplot to see trend in mortality rate
+
+ggplot(new_dataframe, aes(x=final_dataset$date, y=new_dataframe$mortality_rate)) +
+
+geom_point(size=2, shape=23)
+
+#Histogram to check normal distribution of data
+
+hist(final_dataset$mortality_rate,
+
+xlab = "mortality_rate",
+
+main = "Histogram of mortality_rate",
+
+breaks = sqrt(nrow(final_dataset))
+
+)
+
+#Determining skewness of tbe data distribution
+
+skewness(final_dataset$mortality_rate)
+
+#Data transformation to make data resemble a normal distribution
+
+#Logarithmic transformation
+
+log_data <- log10(India$mortality_rate)
+
+Shapiro test to find out p-value of transformed data
+
+shapiro.test(log_data)
+
+skewness(log_data)
+
+#Square root transformation
+
+sqrt_data <- sqrt(India$mortality_rate)
+
+INF6027 - Introduction to Data Science 13
+
+Shapiro test to find out p-value of transformed data
+
+shapiro.test(sqrt_data)
+
+skewness(sqrt_data)
+
+#Inverse transformation
+
+inv_data <- 1/(India$mortality_rate)
+
+Shapiro test to find out p-value of transformed data
+
+shapiro.test(inv_data)
+
+skewness(inv_data)
+
+#Changing datatype of date to Date
+
+numeric_date <- as.Date(final_dataset$date)
+
+#Checking correlation between stringency and case fatality rate through spearman's correlation
+
+corr1 <-cor.test(final_dataset$stringency_index, final_dataset$mortality_rate,
+
+method = "spearman", exact = FALSE)
+
+corr1
+
+#Checking correlation between vaccination and case fatality rate through spearman's correlation
+
+corr2 <-cor.test(final_dataset$total_vaccinations, final_dataset$mortality_rate,
+
+method = "spearman", exact = FALSE)
+
+corr2
+
+Predictive analysis with random forest
+
+ran_data = sort(sample(nrow(final_dataset), nrow(final_dataset)*.75))
+
+final_dataset_train<-final_dataset[ran_data,]
+
+final_dataset_test<-final_dataset[-ran_data,]
+
+model <- randomForest(
+
+mortality~stringency_index+total_vaccinations+,
+
+data=final_dataset_train, ntree=9
+
+)
+
+plot(model)
+
+which.min(model$mse)
+
+varImpPlot(model)
+
+model
+
+is.na(final_dataset_train)
+
+pred <- predict(model, final_dataset_test)
+
+cor(pred,final_dataset_test$case_fatality_rate)
