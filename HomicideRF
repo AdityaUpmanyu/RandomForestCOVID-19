@@ -1,0 +1,144 @@
+import numpy as np 
+import pandas as pd
+import s3fs
+from sklearn.model_selection import train_test_split
+import seaborn as sns
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC, LinearSVC
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.impute import SimpleImputer
+import dill
+
+input_data = pd.read_csv('s3://alpha-homicide-hackathon/data_input/Data_Oasys_and_Delius.csv')
+
+training_data = input_data.sample(frac=0.8, random_state=25)
+testing_data = input_data.drop(training_data.index)
+
+def show_null_count(csv):
+    idx = csv.isnull().sum()
+    idx = idx[idx>0]
+    idx.sort_values(inplace=True)
+    idx.plot.bar(figsize=(40,7))
+    
+def get_corr(col, csv):
+    corr = csv.corr()[col]
+    idx_gt0 = corr[corr>0].sort_values(ascending=False).index.tolist()
+    return corr[idx_gt0]
+    
+    show_null_count(training_data)
+    
+    sns.heatmap(training_data.corr(), vmax=.8, square=True)
+pr_train_data = pd.get_dummies(data=training_data, columns=['gender_id', 'disability','mental_health'])
+
+pr_test_data = pd.get_dummies(data=testing_data, columns=['gender_id', 'disability','mental_health'])
+
+features = pr_train_data.drop("target_variable",axis=1)
+label = pr_train_data["target_variable"]
+
+features.reset_index()
+label.reset_index()
+pr_test_data.reset_index()
+
+dill.dump_session('Untitled.db')
+
+test = pr_train_data.copy()
+mode_imputer = SimpleImputer(strategy='most_frequent')
+pr_train_data['ethnicity_id'] = mode_imputer.fit_transform(pr_train_data['ethnicity_id'].values.reshape(-1,1))
+
+pr_train_data['immigration_status_id'] = mode_imputer.fit_transform(pr_train_data['immigration_status_id'].values.reshape(-1,1))
+pr_train_data['nationality_id'] = mode_imputer.fit_transform(pr_train_data['nationality_id'].values.reshape(-1,1))
+pr_train_data['religion_id'] = mode_imputer.fit_transform(pr_train_data['religion_id'].values.reshape(-1,1))
+pr_train_data['sexual_orientation_id'] = mode_imputer.fit_transform(pr_train_data['sexual_orientation_id'].values.reshape(-1,1))
+pr_train_data['N_additional_offences'] = mode_imputer.fit_transform(pr_train_data['N_additional_offences'].values.reshape(-1,1))
+pr_train_data['N_homicide_and_serious_offences'] = mode_imputer.fit_transform(pr_train_data['N_homicide_and_serious_offences'].values.reshape(-1,1))
+
+real_test = pr_test_data.copy()
+mode_imputer = SimpleImputer(strategy='most_frequent')
+
+pr_test_data['ethnicity_id'] = mode_imputer.fit_transform(pr_test_data['ethnicity_id'].values.reshape(-1,1))
+pr_test_data['immigration_status_id'] = mode_imputer.fit_transform(pr_test_data['immigration_status_id'].values.reshape(-1,1))
+pr_test_data['nationality_id'] = mode_imputer.fit_transform(pr_test_data['nationality_id'].values.reshape(-1,1))
+pr_test_data['religion_id'] = mode_imputer.fit_transform(pr_test_data['religion_id'].values.reshape(-1,1))
+pr_test_data['sexual_orientation_id'] = mode_imputer.fit_transform(pr_test_data['sexual_orientation_id'].values.reshape(-1,1))
+pr_test_data['N_additional_offences'] = mode_imputer.fit_transform(pr_test_data['N_additional_offences'].values.reshape(-1,1))
+pr_test_data['N_homicide_and_serious_offences'] = mode_imputer.fit_transform(pr_test_data['N_homicide_and_serious_offences'].values.reshape(-1,1))
+
+del pr_test_data[pr_test_data.columns[0]]
+
+copy_pr_train_data = pr_train_data.copy()
+
+copy_pr_test_data = pr_test_data.copy()
+train_column_list = list(pr_train_data.columns)
+
+test_features = pr_test_data.drop("target_variable",axis=1)
+test_label = pr_test_data["target_variable"]
+
+train_features = copy_pr_train_data.drop("target_variable",axis=1)
+features = np.array(train_features)
+
+print('Training Features Shape:', features.shape)
+print('Training Labels Shape:', labels.shape)
+print('Testing Features Shape:', test_features.shape)
+print('Testing Labels Shape:', test_label.shape)
+
+
+# import Random Forest classifier
+
+from sklearn.ensemble import RandomForestClassifier
+
+# instantiate the classifier 
+
+rfc = RandomForestClassifier(n_estimators=100,random_state=0)
+
+# fit the model
+
+rfc.fit(train_features, label)
+
+# Predict the Test set results
+
+y_pred = rfc.predict(test_features)
+
+# Check accuracy score 
+
+from sklearn.metrics import accuracy_score
+
+print('Model accuracy score with 10 decision-trees : {0:0.4f}'. format(accuracy_score(test_label, y_pred)))
+
+clf = RandomForestClassifier(n_estimators=100, random_state=0)
+
+# fit the model to the training set
+
+clf.fit(train_features, label)
+feature_scores = pd.Series(clf.feature_importances_, index=train_features.columns).sort_values(ascending=False)
+
+feature_scores
+train_features = copy2_pr_train_data.drop("target_variable",axis=1
+
+Y_pred = rfc.predict(test_features)
+print('Confusion Matrix')
+print(confusion_matrix(ytrue, Y_pred))
+
+ytrue = test_label.astype(int).tolist()
+
+from sklearn.metrics import classification_report
+
+print(classification_report(test_label, Y_pred))
+
+new_data = pd.read_csv('s3://alpha-homicide-hackathon/test_data/Data_test.csv')
+
+pr_new_data =  pd.get_dummies(data=new_data, columns=['gender_id', 'disability','mental_health'])
+
+
+mode_imputer = SimpleImputer(strategy='most_frequent')
+pr_new_data['ethnicity_id'] = mode_imputer.fit_transform(pr_new_data['ethnicity_id'].values.reshape(-1,1))
+pr_new_data['immigration_status_id'] = mode_imputer.fit_transform(pr_new_data['immigration_status_id'].values.reshape(-1,1))
+pr_new_data['nationality_id'] = mode_imputer.fit_transform(pr_new_data['nationality_id'].values.reshape(-1,1))
+pr_new_data['religion_id'] = mode_imputer.fit_transform(pr_new_data['religion_id'].values.reshape(-1,1))
+pr_new_data['sexual_orientation_id'] = mode_imputer.fit_transform(pr_new_data['sexual_orientation_id'].values.reshape(-1,1))
+pr_new_data['N_additional_offences'] = mode_imputer.fit_transform(pr_new_data['N_additional_offences'].values.reshape(-1,1))
+
+target_var = rfc.predict(pr_new_data)
+
+print('Model accuracy score with 10 decision-trees : {0:0.4f}'. format(accuracy_score(target_var, pr_new_data)))
+
+DF.to_excel('test_file.xlsx')
